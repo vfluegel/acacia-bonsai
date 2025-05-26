@@ -6,28 +6,30 @@ jobs:
     steps:
     - name: Install packages
       run: |
-        sudo apt-get install -y zsh meson git gcc python-is-python3 \
+        sudo apt update
+        sudo apt install -y zsh meson git gcc python-is-python3 \
                     ninja-build gnupg wget python3-pip \
                     pkg-config libglib2.0-dev libffi-dev libboost-dev \
-                    autoconf automake libtool bison flex valgrind
+                    autoconf automake libtool bison flex valgrind gpg
         sudo pip install --upgrade meson
-    - name: Checkout repository and submodules
-      uses: actions/checkout@v4
-      with:
-        submodules: recursive
     - name: Add LRDE Debian repository
-      uses: myci-actions/add-deb-repo@11
-      with:
-        repo: deb http://www.lrde.epita.fr/repo/debian/ stable/
-        repo-name: lrde
-        keys-asc: https://www.lrde.epita.fr/repo/debian.gpg
+      run: |
+        sudo mkdir -p /etc/apt/keyrings
+        sudo wget https://www.lrde.epita.fr/repo/debian.gpg
+        sudo gpg --no-default-keyring --keyring ./tmp-kr.gpg --import debian.gpg
+        sudo gpg --no-default-keyring --keyring ./tmp-kr.gpg --export --output /etc/apt/keyrings/lrde.gpg
+        sudo sh -c "echo 'deb [signed-by=/etc/apt/keyrings/lrde.gpg] http://www.lrde.epita.fr/repo/debian/ stable/' >> /etc/apt/sources.list"
     - name: Install Spot
       run: |
-        sudo apt-get install spot libspot-dev
+        sudo apt install spot libspot-dev
     - uses: actions/setup-python@v5
     - name: Install python dependencies
       run: |
         pip install pygraph
+    - name: Checkout repository and submodules
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
     - name: Compile all configurations
       run: |
         ./self-benchmark.sh -R

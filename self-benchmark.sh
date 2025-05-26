@@ -122,7 +122,7 @@ usage: $0 [-hplBCR] [-b BENCHMARK[,BENCHMARK]] [-c CONF[,CONF,...]]
   -B: Do not build.
   -C: Do not compile.
   -R: Do not benchmark.
-  -f: Do not fail when a benchmark does, continue as if they passed.
+  -f: Do not fail when a build, compile, or benchmark does, continue as if they passed.
   -b BENCHMARK: Run a specific benchmark suite (default: $BENCHMARK_SUITE).
   -t TIMEOUT: Use timeout factor TIMEOUT (default: $TIMEOUT_FACTOR).  Actual time is multiplied by 10.
   -c CONF,...: Only consider configurations listed.
@@ -159,7 +159,7 @@ fi
 if ! (( $donot[(Ie)build] )); then
     for name in $conflist; do
         param=$confs[$name]
-        [[ $param == "" ]] && { echo "error: $name, unknown configuration."; exit 2 }
+        [[ $param == "" ]] && { echo "error: $name, unknown configuration."; $force || exit 2 }
         build=build_$name
         log=_bm-logs/$name.log
         rm -f $log
@@ -170,9 +170,9 @@ if ! (( $donot[(Ie)build] )); then
             if CXXFLAGS="$opt $defaults $param $CXXFLAGS" meson $build --buildtype=release &>> $log; then
                 echo "done."
             else
-                echo "FAILED; exciting readily, please remove $build."
+                echo "FAILED; please remove $build to recompile."
                 cat $log
-                exit 2
+                $force || exit 2
             fi
         fi
     done
@@ -197,9 +197,9 @@ if ! (( $donot[(Ie)compile] )); then
             echo "done"
             touch compiled
         else
-            echo "FAILED; stopping..."
+            echo "FAILED."
             cat ../$log
-            exit 3
+            $force || exit 3
         fi
         cd ..
     done
@@ -221,9 +221,9 @@ if ! (( $donot[(Ie)benchmark] )); then
         cd $build
         echo -n "benchmarking $name (logfile: $log)... "
         meson test --benchmark $benchsuites -t $TIMEOUT_FACTOR &>> ../$log
-        if ! $force && grep -q '^Fail:[[:space:]]*[1-9]' ../$log; then
+        if grep -q '^Fail:[[:space:]]*[1-9]' ../$log; then
             echo "FAILED; testlog stored at $log, _bm-logs/$name.json left untouched"
-            exit 5
+            $force || exit 5
         else
             echo "done; testlog stored at $log"
             touch benchmarked

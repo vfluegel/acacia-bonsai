@@ -6,6 +6,8 @@ This is a modern implementation of universal co-Buchi reactive synthesis
 algorithms using antichain data structures.  The theory and practice is described in:
 
    https://arxiv.org/abs/2204.06079
+
+   (Test version for changes to posets)
    
 # Dependencies
 
